@@ -1,7 +1,6 @@
 package com.devops.reservation_service.service;
 
 import com.devops.reservation_service.dto.ReservationDto;
-import com.devops.reservation_service.dto.feign.accommodation.AccommodationDto;
 import com.devops.reservation_service.exception.BadRequestException;
 import com.devops.reservation_service.model.Reservation;
 import com.devops.reservation_service.model.enumerations.ReservationPeriod;
@@ -51,8 +50,14 @@ public class ReservationService {
 
     public Reservation createReservationRequest(String guestId, ReservationDto reservationDto) {
         validateReservationRequest(reservationDto);
-        var accommodation = checkIfAccommodationIsAvailable(reservationDto);
-        double totalPrice = accommodation.getTotalPriceForReservation(reservationDto.getReservationStart(), reservationDto.getReservationEnd());
+        var reserved = checkIfAccommodationHasReservationsForPeriod(reservationDto.getAccommodationId(), reservationDto.getReservationStart(), reservationDto.getReservationEnd());
+        if (reserved)
+            throw new BadRequestException("The accommodation has already been reserved");
+
+        var accommodationReservation = accommodationClient.makeReservationForAccommodation(reservationDto);
+        if (accommodationReservation == null) {
+            throw new BadRequestException("The accommodation is not available for this reservation");
+        }
 
         var reservation = Reservation.builder()
                 .reservationStatus(ReservationStatus.PENDING)
@@ -60,12 +65,12 @@ public class ReservationService {
                 .userId(UUID.fromString(guestId))
                 .accommodationId(reservationDto.getAccommodationId())
                 .guestsNumber(reservationDto.getGuestNumber())
-                .totalPrice(totalPrice)
+                .totalPrice(accommodationReservation.getTotalPrice())
                 .startDate(reservationDto.getReservationStart())
                 .endDate(reservationDto.getReservationEnd())
                 .build();
 
-        if (accommodation.isAutoApproveReservation()){
+        if (accommodationReservation.isAutoApproveReservation()) {
             approveReservation(reservation);
         }
         reservationRepository.save(reservation);
@@ -74,39 +79,25 @@ public class ReservationService {
         return reservation;
     }
 
+    public boolean checkIfAccommodationHasReservationsForPeriod(UUID accommodationId, LocalDate startDate, LocalDate endDate) {
+        var reservations = reservationRepository.findAllByAccommodationInPeriod(
+                accommodationId,
+                startDate,
+                endDate,
+                ReservationStatus.ACCEPTED
+        );
+        return !reservations.isEmpty();
+    }
+
     private void approveReservation(Reservation reservation) {
         reservation.setReservationStatus(ReservationStatus.ACCEPTED);
         reservationRepository.updateReservationStatusByDate(
-            ReservationStatus.DENIED,
-            ReservationStatus.PENDING,
-            reservation.getAccommodationId(),
-            reservation.getStartDate(),
-            reservation.getEndDate()
+                ReservationStatus.DENIED,
+                ReservationStatus.PENDING,
+                reservation.getAccommodationId(),
+                reservation.getStartDate(),
+                reservation.getEndDate()
         );
-    }
-
-    private AccommodationDto checkIfAccommodationIsAvailable(ReservationDto reservationDto) {
-        var reservations = reservationRepository.findAllByAccommodationInPeriod(
-                reservationDto.getAccommodationId(),
-                reservationDto.getReservationStart(),
-                reservationDto.getReservationEnd(),
-                ReservationStatus.ACCEPTED
-        );
-        if (!reservations.isEmpty()) {
-            throw new BadRequestException("Accommodation already has reservations for selected period");
-        }
-
-        var accommodation = accommodationClient.getAccommodationById(reservationDto.getAccommodationId().toString());
-        if (!accommodation.isAvailable(reservationDto.getReservationStart(), reservationDto.getReservationEnd())) {
-            throw new BadRequestException("Accommodation is not available for selected period");
-        }
-
-        if (reservationDto.getGuestNumber() < accommodation.getMinGuestNumber()
-                || reservationDto.getGuestNumber() > accommodation.getMaxGuestNumber()) {
-            throw new BadRequestException("Guest number is not acceptable");
-        }
-
-        return accommodation;
     }
 
     private void validateReservationRequest(ReservationDto reservationDto) {

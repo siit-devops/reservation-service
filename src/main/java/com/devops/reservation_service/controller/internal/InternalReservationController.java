@@ -9,7 +9,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(value = "/api/internal/reservations")
-@CrossOrigin(origins = "http://localhost:4200/")
 public class InternalReservationController {
 
     private final ReservationService reservationService;
