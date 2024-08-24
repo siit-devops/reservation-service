@@ -9,7 +9,6 @@ import com.devops.reservation_service.model.enumerations.ReservationStatus;
 import com.devops.reservation_service.repository.ReservationRepository;
 import com.devops.reservation_service.service.feignClients.AccommodationClient;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -50,7 +49,7 @@ public class ReservationService {
         return getReservationsForUser(userId, reservationPeriod).size();
     }
 
-    public Reservation createReservationRequest(String guestId, @RequestBody ReservationDto reservationDto) {
+    public Reservation createReservationRequest(String guestId, ReservationDto reservationDto) {
         validateReservationRequest(reservationDto);
         var accommodation = checkIfAccommodationIsAvailable(reservationDto);
         double totalPrice = accommodation.getTotalPriceForReservation(reservationDto.getReservationStart(), reservationDto.getReservationEnd());

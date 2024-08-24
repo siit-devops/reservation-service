@@ -10,11 +10,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping(value = "/api/internal/reservations")
 @CrossOrigin(origins = "http://localhost:4200/")
-public class ReservationController {
+public class InternalReservationController {
 
     private final ReservationService reservationService;
 
-    public ReservationController(ReservationService reservationService) {
+    public InternalReservationController(ReservationService reservationService) {
         this.reservationService = reservationService;
     }
 
