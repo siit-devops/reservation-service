@@ -110,6 +110,32 @@ public class ReservationService {
             throw new BadRequestException("Start date cannot be in the past");
     }
 
+    public void cancelReservation(String guestId, UUID reservationId) {
+        Reservation reservation = reservationRepository.findByIdAndUserId(
+                reservationId,
+                UUID.fromString(guestId)
+        ).orElseThrow(() -> new NotFoundException("Reservation not found"));
+
+        var acceptableStatuses = List.of(ReservationStatus.ACCEPTED, ReservationStatus.PENDING);
+        if (!acceptableStatuses.contains(reservation.getReservationStatus())) {
+            throw new BadRequestException("Reservation is not in ACCEPTED or PENDING status");
+        }
+
+        if (!LocalDate.now().isBefore(reservation.getStartDate())) {
+            throw new BadRequestException("Minimum one day before start reservation can be cancelled");
+        }
+
+        if (reservation.getReservationStatus() == ReservationStatus.PENDING) {
+            reservation.setReservationStatus(ReservationStatus.WITHDRAWN);
+        }
+        else {
+            reservation.setReservationStatus(ReservationStatus.CANCELED);
+            // todo: send notification reservation_canceled to host
+        }
+      
+        reservationRepository.save(reservation);
+    }
+  
     public void respondToReservationRequest(String hostId, UUID reservationId, boolean accepted) {
         var reservation = reservationRepository.findByIdAndHostId(
                 reservationId,
@@ -128,6 +154,7 @@ public class ReservationService {
             reservation.setReservationStatus(ReservationStatus.DENIED);
             // todo: notify guest reservation_denied
         }
+      
         reservationRepository.save(reservation);
     }
 }

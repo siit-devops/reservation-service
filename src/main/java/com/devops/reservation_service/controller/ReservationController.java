@@ -25,6 +25,11 @@ public class ReservationController {
         return reservationService.createReservationRequest(principal.getName(), reservationDto);
     }
 
+    @DeleteMapping("/guests/cancel/{reservationId}")
+    public ResponseEntity<?> cancelReservation(Principal principal, @PathVariable UUID reservationId) {
+        reservationService.cancelReservation(principal.getName(), reservationId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
 
     @PutMapping("/hosts/respond/{reservationId}")
 //  todo: @HasRole("HOST")
