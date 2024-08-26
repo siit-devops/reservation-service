@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ReservationRepository extends JpaRepository<Reservation, UUID> {
@@ -35,4 +36,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
             update Reservation r set r.reservationStatus = ?1
             where r.accommodationId = ?3 and r.reservationStatus = ?2 and (r.startDate between ?4 and ?5 or r.endDate between ?4 and ?5)""")
     void updateReservationStatusByDate(ReservationStatus newStatus, ReservationStatus currentStatus, UUID id, LocalDate startDate, LocalDate endDate);
+
+    Optional<Reservation> findByIdAndUserId(UUID id, UUID userId);
 }

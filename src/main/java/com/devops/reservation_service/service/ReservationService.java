@@ -2,6 +2,7 @@ package com.devops.reservation_service.service;
 
 import com.devops.reservation_service.dto.ReservationDto;
 import com.devops.reservation_service.exception.BadRequestException;
+import com.devops.reservation_service.exception.NotFoundException;
 import com.devops.reservation_service.model.Reservation;
 import com.devops.reservation_service.model.enumerations.ReservationPeriod;
 import com.devops.reservation_service.model.enumerations.ReservationStatus;
@@ -106,5 +107,30 @@ public class ReservationService {
 
         if (reservationDto.getReservationStart().isBefore(LocalDate.now()))
             throw new BadRequestException("Start date cannot be in the past");
+    }
+
+    public void cancelReservation(String guestId, UUID reservationId) {
+        Reservation reservation = reservationRepository.findByIdAndUserId(
+                reservationId,
+                UUID.fromString(guestId)
+        ).orElseThrow(() -> new NotFoundException("Reservation not found"));
+
+        var acceptableStatuses = List.of(ReservationStatus.ACCEPTED, ReservationStatus.PENDING);
+        if (!acceptableStatuses.contains(reservation.getReservationStatus())) {
+            throw new BadRequestException("Reservation is not in ACCEPTED or PENDING status");
+        }
+
+        if (!LocalDate.now().isBefore(reservation.getStartDate())) {
+            throw new BadRequestException("Minimum one day before start reservation can be cancelled");
+        }
+
+        if (reservation.getReservationStatus() == ReservationStatus.PENDING) {
+            reservation.setReservationStatus(ReservationStatus.WITHDRAWN);
+        }
+        else {
+            reservation.setReservationStatus(ReservationStatus.CANCELED);
+            // todo: send notification reservation_canceled to host
+        }
+        reservationRepository.save(reservation);
     }
 }
