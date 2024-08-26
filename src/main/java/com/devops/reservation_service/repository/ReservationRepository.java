@@ -37,5 +37,5 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
             where r.accommodationId = ?3 and r.reservationStatus = ?2 and (r.startDate between ?4 and ?5 or r.endDate between ?4 and ?5)""")
     void updateReservationStatusByDate(ReservationStatus newStatus, ReservationStatus currentStatus, UUID id, LocalDate startDate, LocalDate endDate);
 
-    Optional<Reservation> findByIdAndUserId(UUID id, UUID userId);
+    Optional<Reservation> findByIdAndHostId(UUID id, UUID hostId);
 }

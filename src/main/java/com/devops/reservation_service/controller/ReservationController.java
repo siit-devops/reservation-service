@@ -30,4 +30,15 @@ public class ReservationController {
         reservationService.cancelReservation(principal.getName(), reservationId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
+    @PutMapping("/hosts/respond/{reservationId}")
+//  todo: @HasRole("HOST")
+    public ResponseEntity<?> respondToReservationRequest(
+            Principal principal,
+            @PathVariable UUID reservationId,
+            @RequestParam boolean accepted
+    ) {
+        reservationService.respondToReservationRequest(principal.getName(), reservationId, accepted);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
 }

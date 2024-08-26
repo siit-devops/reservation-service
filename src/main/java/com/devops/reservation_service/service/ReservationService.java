@@ -99,6 +99,7 @@ public class ReservationService {
                 reservation.getStartDate(),
                 reservation.getEndDate()
         );
+        // todo: notify all guests reservation_denied
     }
 
     private void validateReservationRequest(ReservationDto reservationDto) {
@@ -131,6 +132,29 @@ public class ReservationService {
             reservation.setReservationStatus(ReservationStatus.CANCELED);
             // todo: send notification reservation_canceled to host
         }
+      
+        reservationRepository.save(reservation);
+    }
+  
+    public void respondToReservationRequest(String hostId, UUID reservationId, boolean accepted) {
+        var reservation = reservationRepository.findByIdAndHostId(
+                reservationId,
+                UUID.fromString(hostId)
+        ).orElseThrow(() -> new NotFoundException("Reservation not found"));
+
+        if (reservation.getReservationStatus() != ReservationStatus.PENDING) {
+            throw new BadRequestException("The reservation is not in status PENDING");
+        }
+
+        if (accepted) {
+            approveReservation(reservation);
+            // todo: notify guest reservation_approved
+        }
+        else {
+            reservation.setReservationStatus(ReservationStatus.DENIED);
+            // todo: notify guest reservation_denied
+        }
+      
         reservationRepository.save(reservation);
     }
 }
