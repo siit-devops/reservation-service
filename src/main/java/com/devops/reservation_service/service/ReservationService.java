@@ -2,6 +2,7 @@ package com.devops.reservation_service.service;
 
 import com.devops.reservation_service.dto.ReservationDto;
 import com.devops.reservation_service.exception.BadRequestException;
+import com.devops.reservation_service.exception.NotFoundException;
 import com.devops.reservation_service.model.Reservation;
 import com.devops.reservation_service.model.enumerations.ReservationPeriod;
 import com.devops.reservation_service.model.enumerations.ReservationStatus;
@@ -98,6 +99,7 @@ public class ReservationService {
                 reservation.getStartDate(),
                 reservation.getEndDate()
         );
+        // todo: notify all guests reservation_denied
     }
 
     private void validateReservationRequest(ReservationDto reservationDto) {
@@ -106,5 +108,26 @@ public class ReservationService {
 
         if (reservationDto.getReservationStart().isBefore(LocalDate.now()))
             throw new BadRequestException("Start date cannot be in the past");
+    }
+
+    public void respondToReservationRequest(String hostId, UUID reservationId, boolean accepted) {
+        var reservation = reservationRepository.findByIdAndHostId(
+                reservationId,
+                UUID.fromString(hostId)
+        ).orElseThrow(() -> new NotFoundException("Reservation not found"));
+
+        if (reservation.getReservationStatus() != ReservationStatus.PENDING) {
+            throw new BadRequestException("The reservation is not in status PENDING");
+        }
+
+        if (accepted) {
+            approveReservation(reservation);
+            // todo: notify guest reservation_approved
+        }
+        else {
+            reservation.setReservationStatus(ReservationStatus.DENIED);
+            // todo: notify guest reservation_denied
+        }
+        reservationRepository.save(reservation);
     }
 }
