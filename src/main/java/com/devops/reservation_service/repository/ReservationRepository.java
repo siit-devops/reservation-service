@@ -38,4 +38,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     void updateReservationStatusByDate(ReservationStatus newStatus, ReservationStatus currentStatus, UUID id, LocalDate startDate, LocalDate endDate);
 
     Optional<Reservation> findByIdAndHostId(UUID id, UUID hostId);
+
+    Optional<Reservation> findByIdAndUserId(UUID id, UUID userId);
 }

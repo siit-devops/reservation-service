@@ -111,7 +111,7 @@ public class ReservationService {
     }
 
     public void cancelReservation(String guestId, UUID reservationId) {
-        Reservation reservation = reservationRepository.findByIdAndHostId(
+        Reservation reservation = reservationRepository.findByIdAndUserId(
                 reservationId,
                 UUID.fromString(guestId)
         ).orElseThrow(() -> new NotFoundException("Reservation not found"));
