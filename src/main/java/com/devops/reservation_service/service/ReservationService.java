@@ -8,10 +8,12 @@ import com.devops.reservation_service.model.enumerations.ReservationPeriod;
 import com.devops.reservation_service.model.enumerations.ReservationStatus;
 import com.devops.reservation_service.repository.ReservationRepository;
 import com.devops.reservation_service.service.feignClients.AccommodationClient;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -156,5 +158,21 @@ public class ReservationService {
         }
       
         reservationRepository.save(reservation);
+    }
+
+    public Reservation findById(UUID id) {
+        return reservationRepository.findById(id).orElseThrow(() -> new NotFoundException("Reservation not found"));
+    }
+
+    public List<Reservation> getAllReservations(Optional<UUID> userId, Optional<ReservationStatus> status, Optional<UUID> accommodationId) {
+        var userIdValue = userId.orElse(null);
+        var statusValue = status.orElse(null);
+        var accommodationIdValue = accommodationId.orElse(null);
+        return reservationRepository.filterAll(userIdValue, statusValue, accommodationIdValue);
+    }
+
+    public List<Reservation> getAllByHostId(String hostIdStr, List<ReservationStatus> statuses) {
+        var hostId = UUID.fromString(hostIdStr);
+        return reservationRepository.findByHostIdAndReservationStatusIn(hostId, statuses);
     }
 }
