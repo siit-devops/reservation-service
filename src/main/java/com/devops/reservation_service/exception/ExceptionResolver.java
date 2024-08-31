@@ -5,9 +5,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @ControllerAdvice
 public class ExceptionResolver {
@@ -36,6 +43,16 @@ public class ExceptionResolver {
             case 404 -> new ResponseEntity<>(exception.getMessage(), headers, HttpStatus.NOT_FOUND);
             default -> new ResponseEntity<>(exception.getMessage(), headers, HttpStatus.INTERNAL_SERVER_ERROR);
         };
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> validationException(MethodArgumentNotValidException exception) {
+        List<String> errors = new ArrayList<>();
+        exception.getBindingResult().getAllErrors().forEach((error) -> {
+            String errorMessage = error.getDefaultMessage();
+            errors.add(errorMessage);
+        });
+        return new ResponseEntity<>(StringUtils.collectionToCommaDelimitedString(errors), HttpStatus.BAD_REQUEST);
     }
 //
 //    @ExceptionHandler(InternalServerException.class)

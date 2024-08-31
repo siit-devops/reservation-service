@@ -4,6 +4,7 @@ import com.devops.reservation_service.dto.ReservationDto;
 import com.devops.reservation_service.model.Reservation;
 import com.devops.reservation_service.model.enumerations.ReservationStatus;
 import com.devops.reservation_service.service.ReservationService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +25,7 @@ public class ReservationController {
     }
 
     @PostMapping
-    public Reservation createReservation(Principal principal, @RequestBody ReservationDto reservationDto) {
+    public Reservation createReservation(Principal principal, @Valid @RequestBody ReservationDto reservationDto) {
         return reservationService.createReservationRequest(principal.getName(), reservationDto);
     }
 
