@@ -1,6 +1,7 @@
 package com.devops.reservation_service.dto;
 
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,9 +15,9 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 public class ReservationDto {
-    @NotNull(message = "AccommodationID is required")
+    @NotBlank(message = "AccommodationID is required")
     private UUID accommodationId;
-    @NotNull(message = "HostID is required")
+    @NotBlank(message = "HostID is required")
     private UUID hostId;
     private Integer guestNumber = 1;
 //    @NotNull
