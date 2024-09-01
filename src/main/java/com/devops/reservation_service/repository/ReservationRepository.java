@@ -21,6 +21,18 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
 
     @Query("""
             select r from Reservation r
+            where r.userId = ?1 and r.hostId = ?2 and
+            r.reservationStatus in ?3""")
+    List<Reservation> findAllByUserIdAndHostIdAAndReservationStatus(UUID userId, UUID hostId, List<ReservationStatus> reservationStatuses);
+
+    @Query("""
+            select r from Reservation r
+            where r.userId = ?1 and r.accommodationId = ?2 and
+            r.reservationStatus in ?3""")
+    List<Reservation> findAllByUserIdAndAccomodationIdAAndReservationStatus(UUID userId, UUID accomodationId, List<ReservationStatus> reservationStatuses);
+
+    @Query("""
+            select r from Reservation r
             where
             r.accommodationId = ?1 and
             ((r.startDate between ?2 and ?3) or

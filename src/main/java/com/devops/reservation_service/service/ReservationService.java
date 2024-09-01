@@ -3,6 +3,8 @@ package com.devops.reservation_service.service;
 import com.devops.reservation_service.dto.ReservationDto;
 import com.devops.reservation_service.exception.BadRequestException;
 import com.devops.reservation_service.exception.NotFoundException;
+import com.devops.reservation_service.kafka.KafkaProducer;
+import com.devops.reservation_service.kafka.ReservationStatusUpdateMessage;
 import com.devops.reservation_service.model.Reservation;
 import com.devops.reservation_service.model.enumerations.ReservationPeriod;
 import com.devops.reservation_service.model.enumerations.ReservationStatus;
@@ -19,10 +21,12 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final AccommodationClient accommodationClient;
+    private final KafkaProducer publisher;
 
-    public ReservationService(ReservationRepository reservationRepository, AccommodationClient accommodationClient) {
+    public ReservationService(ReservationRepository reservationRepository, AccommodationClient accommodationClient, KafkaProducer publisher) {
         this.reservationRepository = reservationRepository;
         this.accommodationClient = accommodationClient;
+        this.publisher = publisher;
     }
 
 
@@ -76,7 +80,7 @@ public class ReservationService {
         }
         reservationRepository.save(reservation);
 
-        // todo: send notification to host
+        sendNotificationToUser(reservation.getUserId(), reservation.getHostId(), reservation.getId(), ReservationStatus.PENDING);
         return reservation;
     }
 
@@ -92,6 +96,14 @@ public class ReservationService {
 
     private void approveReservation(Reservation reservation) {
         reservation.setReservationStatus(ReservationStatus.ACCEPTED);
+
+        List<Reservation> deniedReservations = reservationRepository.findAllByAccommodationInPeriod(
+                reservation.getAccommodationId(),
+                reservation.getStartDate(),
+                reservation.getEndDate(),
+                ReservationStatus.PENDING
+        );
+
         reservationRepository.updateReservationStatusByDate(
                 ReservationStatus.DENIED,
                 ReservationStatus.PENDING,
@@ -99,7 +111,10 @@ public class ReservationService {
                 reservation.getStartDate(),
                 reservation.getEndDate()
         );
-        // todo: notify all guests reservation_denied
+
+        for (Reservation deniedReservation : deniedReservations) {
+            sendNotificationToUser(reservation.getHostId(), deniedReservation.getUserId(), deniedReservation.getId(), ReservationStatus.DENIED);
+        }
     }
 
     private void validateReservationRequest(ReservationDto reservationDto) {
@@ -127,10 +142,11 @@ public class ReservationService {
 
         if (reservation.getReservationStatus() == ReservationStatus.PENDING) {
             reservation.setReservationStatus(ReservationStatus.WITHDRAWN);
+            sendNotificationToUser(reservation.getUserId(), reservation.getHostId(), reservation.getId(), ReservationStatus.WITHDRAWN);
         }
         else {
             reservation.setReservationStatus(ReservationStatus.CANCELED);
-            // todo: send notification reservation_canceled to host
+            sendNotificationToUser(reservation.getUserId(), reservation.getHostId(), reservation.getId(), ReservationStatus.CANCELED);
         }
       
         reservationRepository.save(reservation);
@@ -148,13 +164,26 @@ public class ReservationService {
 
         if (accepted) {
             approveReservation(reservation);
-            // todo: notify guest reservation_approved
+            sendNotificationToUser(reservation.getHostId(), reservation.getUserId(), reservation.getId(), ReservationStatus.ACCEPTED);
         }
         else {
             reservation.setReservationStatus(ReservationStatus.DENIED);
-            // todo: notify guest reservation_denied
+            sendNotificationToUser(reservation.getHostId(), reservation.getUserId(), reservation.getId(), ReservationStatus.DENIED);
         }
       
         reservationRepository.save(reservation);
+    }
+
+    private void sendNotificationToUser(UUID senderId, UUID receiverId, UUID reservationId, ReservationStatus status) {
+        publisher.send("reservation-status-update",
+                new ReservationStatusUpdateMessage(senderId, receiverId, reservationId, status));
+    }
+
+    public boolean checkIfUserHasReservations(UUID guestId, UUID hostId) {
+        return !reservationRepository.findAllByUserIdAndHostIdAAndReservationStatus(guestId, hostId, List.of(ReservationStatus.DONE)).isEmpty();
+    }
+
+    public boolean hasUserStayedAtAcccomodation(UUID guestId, UUID accomodationId) {
+        return !reservationRepository.findAllByUserIdAndAccomodationIdAAndReservationStatus(guestId, accomodationId, List.of(ReservationStatus.DONE)).isEmpty();
     }
 }
