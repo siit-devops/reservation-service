@@ -5,6 +5,7 @@ import com.devops.reservation_service.model.enumerations.ReservationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -52,4 +53,15 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     Optional<Reservation> findByIdAndHostId(UUID id, UUID hostId);
 
     Optional<Reservation> findByIdAndUserId(UUID id, UUID userId);
+
+    @Query("""
+            select r from Reservation r
+            where
+            (?1 is null or r.userId = ?1) and
+            (?2 is null or r.reservationStatus = ?2) and
+            (?3 is null or r.accommodationId = ?3)"""
+    )
+    List<Reservation> filterAll(UUID userId, ReservationStatus status, UUID accommodationId);
+
+    List<Reservation> findByHostIdAndReservationStatusIn(UUID hostId, List<ReservationStatus> statuses);
 }
