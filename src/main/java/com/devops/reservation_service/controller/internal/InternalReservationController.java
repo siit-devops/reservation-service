@@ -27,4 +27,13 @@ public class InternalReservationController {
         return reservationService.countUsersReservations(UUID.fromString(userId), reservationPeriod);
     }
 
+    @GetMapping("/has-previous/{userId}")
+    boolean checkIfUserHasReservation(@PathVariable String userId, @RequestParam String hostId){
+        return reservationService.checkIfUserHasReservations(UUID.fromString(userId), UUID.fromString(hostId));
+    }
+
+    @GetMapping("/stayed/{userId}")
+    boolean userStayedAtAccomodation(@PathVariable String userId, @RequestParam String accomodationId){
+        return reservationService.hasUserStayedAtAcccomodation(UUID.fromString(userId), UUID.fromString(accomodationId));
+    }
 }
