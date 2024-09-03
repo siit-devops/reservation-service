@@ -25,7 +25,7 @@ public class Reservation {
     private UUID hostId;
     private Integer guestsNumber;
     private Double totalPrice;
-//    private Double priceByGuest;
+    private Double priceByGuest;
     private LocalDate startDate;
     private LocalDate endDate;
     @Enumerated(EnumType.STRING)
