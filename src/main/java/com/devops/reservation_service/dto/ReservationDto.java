@@ -15,9 +15,9 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 public class ReservationDto {
-    @NotBlank(message = "AccommodationID is required")
+    @NotNull(message = "AccommodationID is required")
     private UUID accommodationId;
-    @NotBlank(message = "HostID is required")
+    @NotNull(message = "HostID is required")
     private UUID hostId;
     private Integer guestNumber = 1;
 //    @NotNull
