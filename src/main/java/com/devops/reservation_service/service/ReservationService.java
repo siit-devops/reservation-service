@@ -1,6 +1,9 @@
 package com.devops.reservation_service.service;
 
+import com.devops.reservation_service.dto.GetReservationDto;
 import com.devops.reservation_service.dto.ReservationDto;
+import com.devops.reservation_service.dto.feign.accommodation.AccommodationDetails;
+import com.devops.reservation_service.dto.feign.user.UsersFromReservationDetails;
 import com.devops.reservation_service.exception.BadRequestException;
 import com.devops.reservation_service.exception.NotFoundException;
 import com.devops.reservation_service.kafka.KafkaProducer;
@@ -10,10 +13,12 @@ import com.devops.reservation_service.model.enumerations.ReservationPeriod;
 import com.devops.reservation_service.model.enumerations.ReservationStatus;
 import com.devops.reservation_service.repository.ReservationRepository;
 import com.devops.reservation_service.service.feignClients.AccommodationClient;
+import com.devops.reservation_service.service.feignClients.UserClient;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,11 +29,13 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final AccommodationClient accommodationClient;
     private final KafkaProducer publisher;
+    private final UserClient userClient;
 
-    public ReservationService(ReservationRepository reservationRepository, AccommodationClient accommodationClient, KafkaProducer publisher) {
+    public ReservationService(ReservationRepository reservationRepository, AccommodationClient accommodationClient, KafkaProducer publisher, UserClient userClient) {
         this.reservationRepository = reservationRepository;
         this.accommodationClient = accommodationClient;
         this.publisher = publisher;
+        this.userClient = userClient;
     }
 
 
@@ -145,15 +152,14 @@ public class ReservationService {
         if (reservation.getReservationStatus() == ReservationStatus.PENDING) {
             reservation.setReservationStatus(ReservationStatus.WITHDRAWN);
             sendNotificationToUser(reservation.getUserId(), reservation.getHostId(), reservation.getId(), ReservationStatus.WITHDRAWN);
-        }
-        else {
+        } else {
             reservation.setReservationStatus(ReservationStatus.CANCELED);
             sendNotificationToUser(reservation.getUserId(), reservation.getHostId(), reservation.getId(), ReservationStatus.CANCELED);
         }
-      
+
         reservationRepository.save(reservation);
     }
-  
+
     public void respondToReservationRequest(String hostId, UUID reservationId, boolean accepted) {
         var reservation = reservationRepository.findByIdAndHostId(
                 reservationId,
@@ -167,12 +173,11 @@ public class ReservationService {
         if (accepted) {
             approveReservation(reservation);
             sendNotificationToUser(reservation.getHostId(), reservation.getUserId(), reservation.getId(), ReservationStatus.ACCEPTED);
-        }
-        else {
+        } else {
             reservation.setReservationStatus(ReservationStatus.DENIED);
             sendNotificationToUser(reservation.getHostId(), reservation.getUserId(), reservation.getId(), ReservationStatus.DENIED);
         }
-      
+
         reservationRepository.save(reservation);
     }
 
@@ -195,13 +200,47 @@ public class ReservationService {
         return reservationRepository.filterAll(userIdValue, statusValue, accommodationIdValue);
     }
 
-    public List<Reservation> getAllByHostId(String hostIdStr, List<ReservationStatus> statuses) {
+    public List<GetReservationDto> getAllByHostId(String hostIdStr, List<ReservationStatus> statuses) {
         var hostId = UUID.fromString(hostIdStr);
-        return reservationRepository.findByHostIdAndReservationStatusIn(hostId, statuses);
+        var reservations = reservationRepository.findByHostIdAndReservationStatusIn(hostId, statuses);
+
+        return makeReservationsDto(reservations);
+    }
+
+    private List<GetReservationDto> makeReservationsDto(List<Reservation> reservations) {
+        List<GetReservationDto> reservationInfos = new ArrayList<>();
+
+        for (Reservation reservation : reservations) {
+            AccommodationDetails accommodationDetails = accommodationClient.getAccommodationDetails(reservation.getAccommodationId());
+            UsersFromReservationDetails usersDetails = userClient.getUsersForReservationDetails(reservation.getUserId(), reservation.getHostId());
+
+            reservationInfos.add(GetReservationDto.builder()
+                    .id(reservation.getId())
+                    .accommodationId(reservation.getAccommodationId())
+                    .hostName(usersDetails.getHostName())
+                    .guestName(usersDetails.getGuestName())
+                    .reservationStatus(reservation.getReservationStatus())
+                    .images(accommodationDetails.getImages())
+                    .accommodationName(accommodationDetails.getName())
+                    .guestNumber(reservation.getGuestsNumber())
+                    .startDate(reservation.getStartDate())
+                    .endDate(reservation.getEndDate())
+                    .totalPrice(reservation.getTotalPrice())
+                    .pricePerGuest((reservation.getPriceByGuest() != null) ? reservation.getPriceByGuest() : 0.)
+                    .build()
+            );
+        }
+
+        return reservationInfos;
     }
 
     private void sendNotificationToUser(UUID senderId, UUID receiverId, UUID reservationId, ReservationStatus status) {
         publisher.send("reservation-status-update",
                 new ReservationStatusUpdateMessage(senderId, receiverId, reservationId, status));
+    }
+
+    public List<GetReservationDto> getReservations(Optional<UUID> userId, Optional<ReservationStatus> status, Optional<UUID> accommodationId) {
+        var reservations = getAllReservations(userId, status, accommodationId);
+        return makeReservationsDto(reservations);
     }
 }
