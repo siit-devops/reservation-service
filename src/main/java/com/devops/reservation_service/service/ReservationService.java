@@ -234,6 +234,11 @@ public class ReservationService {
         return reservationInfos;
     }
 
+    public List<UUID> getUnavailableAccomodations(LocalDate startDate, LocalDate endDate) {
+        return reservationRepository.findAllUnavailable(startDate, endDate, List.of(ReservationStatus.IN_PROGRESS,
+                ReservationStatus.ACCEPTED));
+    }
+
     private void sendNotificationToUser(UUID senderId, UUID receiverId, UUID reservationId, ReservationStatus status) {
         publisher.send("reservation-status-update",
                 new ReservationStatusUpdateMessage(senderId, receiverId, reservationId, status));

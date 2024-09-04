@@ -64,4 +64,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     List<Reservation> filterAll(UUID userId, ReservationStatus status, UUID accommodationId);
 
     List<Reservation> findByHostIdAndReservationStatusIn(UUID hostId, List<ReservationStatus> statuses);
+
+    @Query("""
+        select r.accommodationId from Reservation r 
+        where (?1 between r.startDate and r.endDate) or (?2 between r.startDate and r.endDate)
+        and r.reservationStatus in ?3
+    """)
+    List<UUID> findAllUnavailable(LocalDate startDate, LocalDate endDate, List<ReservationStatus> statuses);
 }
