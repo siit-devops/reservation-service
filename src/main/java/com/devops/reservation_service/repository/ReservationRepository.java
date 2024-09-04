@@ -58,10 +58,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
             select r from Reservation r
             where
             (?1 is null or r.userId = ?1) and
-            (?2 is null or r.reservationStatus = ?2) and
-            (?3 is null or r.accommodationId = ?3)"""
+            (?2 is null or r.hostId = ?2) and
+            (?3 is null or r.reservationStatus in ?3) and
+            (?4 is null or r.accommodationId = ?4)"""
     )
-    List<Reservation> filterAll(UUID userId, ReservationStatus status, UUID accommodationId);
+    List<Reservation> filterAll(UUID userId, UUID hostId, List<ReservationStatus> statuses, UUID accommodationId);
 
     List<Reservation> findByHostIdAndReservationStatusIn(UUID hostId, List<ReservationStatus> statuses);
 }

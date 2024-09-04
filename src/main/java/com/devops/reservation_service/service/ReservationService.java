@@ -182,22 +182,23 @@ public class ReservationService {
     }
 
     public boolean checkIfUserHasReservations(UUID guestId, UUID hostId) {
-        return !reservationRepository.findAllByUserIdAndHostIdAAndReservationStatus(guestId, hostId, List.of(ReservationStatus.DONE)).isEmpty();
+        return !reservationRepository.findAllByUserIdAndHostIdAAndReservationStatus(guestId, hostId, List.of(ReservationStatus.DONE, ReservationStatus.ACCEPTED)).isEmpty();
     }
 
     public boolean hasUserStayedAtAcccomodation(UUID guestId, UUID accomodationId) {
-        return !reservationRepository.findAllByUserIdAndAccomodationIdAAndReservationStatus(guestId, accomodationId, List.of(ReservationStatus.DONE)).isEmpty();
+        return !reservationRepository.findAllByUserIdAndAccomodationIdAAndReservationStatus(guestId, accomodationId, List.of(ReservationStatus.DONE, ReservationStatus.ACCEPTED)).isEmpty();
     }
 
     public Reservation findById(UUID id) {
         return reservationRepository.findById(id).orElseThrow(() -> new NotFoundException("Reservation not found"));
     }
 
-    public List<Reservation> getAllReservations(Optional<UUID> userId, Optional<ReservationStatus> status, Optional<UUID> accommodationId) {
+    public List<Reservation> getAllReservations(Optional<UUID> userId, Optional<UUID> hostId, Optional<List<ReservationStatus>> statuses, Optional<UUID> accommodationId) {
         var userIdValue = userId.orElse(null);
-        var statusValue = status.orElse(null);
+        var statusValue = statuses.orElse(null);
         var accommodationIdValue = accommodationId.orElse(null);
-        return reservationRepository.filterAll(userIdValue, statusValue, accommodationIdValue);
+        var hostIdValue = hostId.orElse(null);
+        return reservationRepository.filterAll(userIdValue, hostIdValue, statusValue, accommodationIdValue);
     }
 
     public List<GetReservationDto> getAllByHostId(String hostIdStr, List<ReservationStatus> statuses) {
@@ -217,6 +218,7 @@ public class ReservationService {
             reservationInfos.add(GetReservationDto.builder()
                     .id(reservation.getId())
                     .accommodationId(reservation.getAccommodationId())
+                    .hostId(reservation.getHostId())
                     .hostName(usersDetails.getHostName())
                     .guestName(usersDetails.getGuestName())
                     .reservationStatus(reservation.getReservationStatus())
@@ -239,8 +241,8 @@ public class ReservationService {
                 new ReservationStatusUpdateMessage(senderId, receiverId, reservationId, status));
     }
 
-    public List<GetReservationDto> getReservations(Optional<UUID> userId, Optional<ReservationStatus> status, Optional<UUID> accommodationId) {
-        var reservations = getAllReservations(userId, status, accommodationId);
+    public List<GetReservationDto> getReservations(Optional<UUID> userId, Optional<UUID> hostId, Optional<List<ReservationStatus>> statuses, Optional<UUID> accommodationId) {
+        var reservations = getAllReservations(userId, hostId, statuses, accommodationId);
         return makeReservationsDto(reservations);
     }
 }

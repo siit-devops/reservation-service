@@ -25,4 +25,5 @@ public class GetReservationDto {
     private double pricePerGuest;
     private Set<String> images;
     private UUID accommodationId;
+    private UUID hostId;
 }
