@@ -54,10 +54,11 @@ public class ReservationController {
     @GetMapping()
     public ResponseEntity<List<GetReservationDto>> getAllByQueryParams(
             @RequestParam(required = false) Optional<UUID> userId,
-            @RequestParam(required = false) Optional<ReservationStatus> status,
+            @RequestParam(required = false) Optional<UUID> hostId,
+            @RequestParam(required = false) Optional<List<ReservationStatus>> statuses,
             @RequestParam(required = false) Optional<UUID> accommodationId
     ) {
-        return new ResponseEntity<>(reservationService.getReservations(userId, status, accommodationId), HttpStatus.OK);
+        return new ResponseEntity<>(reservationService.getReservations(userId, hostId, statuses, accommodationId), HttpStatus.OK);
     }
 
     @GetMapping("/hosts")
