@@ -42,4 +42,9 @@ public class InternalReservationController {
     List<UUID> getUnavailableAccomodations(@RequestParam LocalDate startDate, @RequestParam LocalDate endDate) {
         return reservationService.getUnavailableAccomodations(startDate, endDate);
     }
+
+    @DeleteMapping("/deleteByAccommodationId/{id}")
+    boolean deleteReservationsByAccommodationId(@PathVariable UUID id){
+        return reservationService.deleteByAccommodationId(id);
+    }
 }
