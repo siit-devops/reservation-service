@@ -4,6 +4,7 @@ import com.devops.reservation_service.model.Reservation;
 import com.devops.reservation_service.service.ReservationService;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,5 +36,10 @@ public class InternalReservationController {
     @GetMapping("/stayed/{userId}")
     boolean userStayedAtAccomodation(@PathVariable String userId, @RequestParam String accomodationId){
         return reservationService.hasUserStayedAtAcccomodation(UUID.fromString(userId), UUID.fromString(accomodationId));
+    }
+
+    @GetMapping("/unavailable-accomodations")
+    List<UUID> getUnavailableAccomodations(@RequestParam LocalDate startDate, @RequestParam LocalDate endDate) {
+        return reservationService.getUnavailableAccomodations(startDate, endDate);
     }
 }
