@@ -47,6 +47,7 @@ public class KeycloakSecurityConfig {
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/internal/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/reservations").hasAnyRole("GUEST")
                         .requestMatchers("/api/reservations/hosts**").hasAnyRole("HOST")
                         .requestMatchers("/api/reservations/guests**").hasAnyRole("GUEST")
                         .anyRequest().authenticated()

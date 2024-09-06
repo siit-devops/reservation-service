@@ -6,17 +6,20 @@ import com.devops.reservation_service.model.Reservation;
 import com.devops.reservation_service.model.enumerations.ReservationStatus;
 import com.devops.reservation_service.service.ReservationService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/reservations")
+@Slf4j
 public class ReservationController {
 
     private final ReservationService reservationService;
@@ -27,6 +30,7 @@ public class ReservationController {
 
     @PostMapping
     public Reservation createReservation(Principal principal, @Valid @RequestBody ReservationDto reservationDto) {
+        log.info("Creating reservation for: {} at {}", reservationDto.getAccommodationId(), LocalDateTime.now());
         return reservationService.createReservationRequest(principal.getName(), reservationDto);
     }
 
