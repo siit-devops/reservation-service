@@ -35,13 +35,13 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     @Query("""
             select r from Reservation r
             where
+            r.reservationStatus in ?4 and
             r.accommodationId = ?1 and
             ((r.startDate between ?2 and ?3) or
             (r.endDate between ?2 and ?3) or
             (?2 between r.startDate and r.endDate) or
-            (?3 between r.startDate and r.endDate)) and
-            r.reservationStatus = ?4""")
-    List<Reservation> findAllByAccommodationInPeriod(UUID accommodationId, LocalDate reservationStart, LocalDate reservationEnd, ReservationStatus reservationStatus);
+            (?3 between r.startDate and r.endDate))""")
+    List<Reservation> findAllByAccommodationInPeriod(UUID accommodationId, LocalDate reservationStart, LocalDate reservationEnd, List<ReservationStatus> statuses);
 
     @Transactional
     @Modifying
@@ -64,12 +64,20 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     )
     List<Reservation> filterAll(UUID userId, UUID hostId, List<ReservationStatus> statuses, UUID accommodationId);
 
+    @Query("""
+            select r from Reservation r
+            where
+            r.hostId = ?1 and
+            (?2 is null or r.reservationStatus in ?2)""")
     List<Reservation> findByHostIdAndReservationStatusIn(UUID hostId, List<ReservationStatus> statuses);
 
     @Query("""
-        select r.accommodationId from Reservation r 
-        where (?1 between r.startDate and r.endDate) or (?2 between r.startDate and r.endDate)
-        and r.reservationStatus in ?3
-    """)
+        select r.accommodationId from Reservation r
+        where ((?1 between r.startDate and r.endDate) or (?2 between r.startDate and r.endDate))
+        and r.reservationStatus in ?3""")
     List<UUID> findAllUnavailable(LocalDate startDate, LocalDate endDate, List<ReservationStatus> statuses);
+
+    List<Reservation> findAllByAccommodationIdAndReservationStatusIn(UUID accommodationId, List<ReservationStatus> statuses);
+
+    void removeAllByAccommodationId(UUID accommodationId);
 }

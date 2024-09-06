@@ -62,7 +62,9 @@ public class ReservationController {
     }
 
     @GetMapping("/hosts")
-    public ResponseEntity<List<GetReservationDto>> getAllByHostId(Principal principal, @RequestParam List<ReservationStatus> reservationStatuses) {
+    public ResponseEntity<List<GetReservationDto>> getAllByHostId(
+            Principal principal,
+            @RequestParam(required = false) Optional<List<ReservationStatus>> reservationStatuses) {
         return new ResponseEntity<>(reservationService.getAllByHostId(principal.getName(), reservationStatuses), HttpStatus.OK);
     }
 }

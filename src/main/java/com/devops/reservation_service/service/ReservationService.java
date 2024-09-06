@@ -16,6 +16,7 @@ import com.devops.reservation_service.service.feignClients.AccommodationClient;
 import com.devops.reservation_service.service.feignClients.UserClient;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -98,19 +99,20 @@ public class ReservationService {
                 accommodationId,
                 startDate,
                 endDate,
-                ReservationStatus.ACCEPTED
+                List.of(ReservationStatus.ACCEPTED)
         );
         return !reservations.isEmpty();
     }
 
     private void approveReservation(Reservation reservation) {
         reservation.setReservationStatus(ReservationStatus.ACCEPTED);
+        reservationRepository.save(reservation);
 
         List<Reservation> deniedReservations = reservationRepository.findAllByAccommodationInPeriod(
                 reservation.getAccommodationId(),
                 reservation.getStartDate(),
                 reservation.getEndDate(),
-                ReservationStatus.PENDING
+                List.of(ReservationStatus.PENDING)
         );
 
         reservationRepository.updateReservationStatusByDate(
@@ -201,9 +203,10 @@ public class ReservationService {
         return reservationRepository.filterAll(userIdValue, hostIdValue, statusValue, accommodationIdValue);
     }
 
-    public List<GetReservationDto> getAllByHostId(String hostIdStr, List<ReservationStatus> statuses) {
+    public List<GetReservationDto> getAllByHostId(String hostIdStr, Optional<List<ReservationStatus>> statuses) {
         var hostId = UUID.fromString(hostIdStr);
-        var reservations = reservationRepository.findByHostIdAndReservationStatusIn(hostId, statuses);
+        var statusValues = statuses.orElse(null);
+        var reservations = reservationRepository.findByHostIdAndReservationStatusIn(hostId, statusValues);
 
         return makeReservationsDto(reservations);
     }
@@ -249,5 +252,15 @@ public class ReservationService {
     public List<GetReservationDto> getReservations(Optional<UUID> userId, Optional<UUID> hostId, Optional<List<ReservationStatus>> statuses, Optional<UUID> accommodationId) {
         var reservations = getAllReservations(userId, hostId, statuses, accommodationId);
         return makeReservationsDto(reservations);
+    }
+
+    @Transactional
+    public boolean deleteByAccommodationId(UUID accommodationId) {
+        var reservations = reservationRepository.findAllByAccommodationIdAndReservationStatusIn(accommodationId, List.of(ReservationStatus.ACCEPTED, ReservationStatus.IN_PROGRESS));
+        if (reservations.isEmpty()) {
+            reservationRepository.removeAllByAccommodationId(accommodationId);
+            return true;
+        }
+        return false;
     }
 }
